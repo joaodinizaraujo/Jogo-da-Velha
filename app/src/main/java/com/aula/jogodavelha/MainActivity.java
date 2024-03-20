@@ -1,20 +1,30 @@
 package com.aula.jogodavelha;
-
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
-import android.media.Image;
 import android.os.Bundle;
 import android.os.Handler;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Objects;
+import java.util.Random;
+
 public class MainActivity extends AppCompatActivity {
     private int jogada;
     private char[][] jogo;
+    final Random random = new Random();
     Handler handler;
+    // 0: amigo
+    // 1: android
+    // 2: gpt
+    int tipoJogo;
+    HashMap<String, Integer> mapPosicoes;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -25,6 +35,20 @@ public class MainActivity extends AppCompatActivity {
         jogo = new char[3][3];
         jogada = 0;
         handler = new Handler();
+        mapPosicoes = new HashMap<String, Integer>();
+        mapPosicoes.put("a00",R.id.a00);
+        mapPosicoes.put("a01",R.id.a01);
+        mapPosicoes.put("a02",R.id.a02);
+        mapPosicoes.put("a10",R.id.a10);
+        mapPosicoes.put("a11",R.id.a11);
+        mapPosicoes.put("a12",R.id.a12);
+        mapPosicoes.put("a20",R.id.a20);
+        mapPosicoes.put("a21",R.id.a21);
+        mapPosicoes.put("a22",R.id.a22);
+        Intent intent = getIntent();
+        if (intent != null && intent.getExtras() != null) {
+            tipoJogo = intent.getExtras().getInt("tipo");
+        }
     }
 
     public boolean verificarVitoria(){
@@ -69,9 +93,12 @@ public class MainActivity extends AppCompatActivity {
 
         // seta o texto como vazio
         ((TextView) findViewById(R.id.resultado)).setText(" ");
+
+        Intent intent = new Intent(this, Menu.class);
+        startActivity(intent);
     }
 
-    public void colocarJogada(View view) {
+    public void colocarJogada(View view) throws InterruptedException {
         /*
          * Recebe uma view com a posição jogada. 
          * Adiciona foto da jogada na tela principal e verifica se alguém ganhou.
@@ -84,24 +111,12 @@ public class MainActivity extends AppCompatActivity {
         String id = view.getResources().getResourceEntryName(posicao.getId()).replace("a", "");
 
         // inicializando index da matriz
-        int i;
-        int j;
-
-        // verifica se view que chamou a função não é a do background
-        if(!id.contains("b")){
-            
-            // pega o index da matriz pelo id
-            i = Integer.parseInt(String.valueOf(id.charAt(0)));
-            j = Integer.parseInt(String.valueOf(id.charAt(1)));
-        }else{
-
-            // encerra a execução da função
-            return;
-        }
+        int i = Integer.parseInt(String.valueOf(id.charAt(0)));
+        int j = Integer.parseInt(String.valueOf(id.charAt(1)));
 
         // verifica se a posição da jogada é nula na matriz
         if(jogo[i][j] == '\u0000'){
-            
+
             // se a jogada for par, é jogada do X
             if(jogada % 2 == 0) {
 
@@ -110,20 +125,26 @@ public class MainActivity extends AppCompatActivity {
 
                 // preenche a posição com X na matriz
                 jogo[i][j] = 'x';
+                jogada++;
+
+                if (tipoJogo == 1) {
+                    fazerJogadaAutomatica();
+                    Thread.sleep(500);
+                    jogada++;
+                }
             }
-            
+
             // se a jogada for ímpar, é jogada do O
             else{
+                if(tipoJogo == 0){
+                    // seta a foto como a foto do O
+                    posicao.setImageResource(R.drawable.o);
 
-                // seta a foto como a foto do O
-                posicao.setImageResource(R.drawable.o);
-
-                // preenche a posição com O na matriz
-                jogo[i][j] = 'o';
+                    // preenche a posição com O na matriz
+                    jogo[i][j] = 'o';
+                    jogada++;
+                }
             }
-
-            // incrementa a jogada
-            jogada++;
 
             // verifica se algúem ganhou
             if(verificarVitoria()){
@@ -133,11 +154,11 @@ public class MainActivity extends AppCompatActivity {
 
                 // seta jogada como 9, para sinalizar que acabou o jogo
                 jogada = 9;
-            } 
-            
+            }
+
             // verifica ninguém ganhou e a jogada é 9
             else if (jogada == 9) {
-                
+
                 // seta o texto como empate
                 ((TextView) findViewById(R.id.resultado)).setText("Empate...");
             }
@@ -156,5 +177,23 @@ public class MainActivity extends AppCompatActivity {
                 }, 2000);
             }
         }
+    }
+    public void fazerJogadaAutomatica(){
+        ImageView posicao;
+        int i;
+        int j;
+        do {
+            i = random.nextInt(3);
+            j = random.nextInt(3);
+        } while (jogo[i][j] != '\u0000');
+
+        // pegando posição
+        posicao = findViewById(mapPosicoes.get(String.format("a%d%d", i, j)));
+
+        // seta a foto como a foto do O
+        posicao.setImageResource(R.drawable.o);
+
+        // preenche a posição com O na matriz
+        jogo[i][j] = 'o';
     }
 }
